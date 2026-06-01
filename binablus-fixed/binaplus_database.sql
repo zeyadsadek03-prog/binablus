@@ -1,15 +1,9 @@
--- ============================================================
--- BinaPlus - Apartman Yonetim Sistemi
--- Tam Veritabani Kurulum Scripti
--- ============================================================
+
 
 DROP DATABASE IF EXISTS binaplus;
 CREATE DATABASE binaplus CHARACTER SET utf8mb4 COLLATE utf8mb4_turkish_ci;
 USE binaplus;
 
--- ============================================================
--- TABLOLAR
--- ============================================================
 
 CREATE TABLE binaplus_daireler (
   daire_id    VARCHAR(64) PRIMARY KEY,
@@ -88,9 +82,7 @@ CREATE TABLE binaplus_daire_sakinleri (
   CHECK (rol IN ('Sahip','Kiraci'))
 );
 
--- ============================================================
--- STORED PROCEDURES - DAİRELER
--- ============================================================
+
 DELIMITER $$
 
 CREATE PROCEDURE bp_DairelerHepsi()
@@ -132,9 +124,7 @@ BEGIN
      OR durum LIKE CONCAT('%',filtre,'%');
 END $$
 
--- ============================================================
--- STORED PROCEDURES - KİŞİLER
--- ============================================================
+
 
 CREATE PROCEDURE bp_KisilerHepsi()
 BEGIN
@@ -177,7 +167,7 @@ BEGIN
      OR rol LIKE CONCAT('%',filtre,'%');
 END $$
 
--- BUG FIX: bp_KisiBakiye - bu procedure eksikti, uygulama bunu kullanıyor
+
 CREATE PROCEDURE bp_KisiBakiye(id VARCHAR(64))
 BEGIN
   DECLARE toplam_aidat FLOAT DEFAULT 0;
@@ -195,11 +185,7 @@ BEGIN
   SELECT toplam_odeme - toplam_aidat AS Bakiye;
 END $$
 
--- ============================================================
--- STORED PROCEDURES - AİDATLAR
--- (BUG FIX: bp_AidatlarHepsi artık DaireNo kolonunu da döndürüyor
---  çünkü UI'daki AidatComboDoldur bu kolonu kullanıyor)
--- ============================================================
+
 
 CREATE PROCEDURE bp_AidatlarHepsi()
 BEGIN
@@ -261,9 +247,7 @@ BEGIN
   SELECT COALESCE(SUM(tutar), 0) AS Toplam FROM binaplus_aidatlar;
 END $$
 
--- ============================================================
--- STORED PROCEDURES - ÖDEMELER
--- ============================================================
+
 
 CREATE PROCEDURE bp_OdemelerHepsi()
 BEGIN
@@ -318,15 +302,13 @@ BEGIN
      OR o.aciklama LIKE CONCAT('%',filtre,'%');
 END $$
 
--- BUG FIX: bp_OdemeToplam - eksikti
+
 CREATE PROCEDURE bp_OdemeToplam()
 BEGIN
   SELECT COALESCE(SUM(tutar), 0) AS Toplam FROM binaplus_odemeler;
 END $$
 
--- ============================================================
--- STORED PROCEDURES - BAKIM TALEPLERİ
--- ============================================================
+
 
 CREATE PROCEDURE bp_BakimHepsi()
 BEGIN
@@ -381,9 +363,7 @@ BEGIN
      OR d.daire_no LIKE CONCAT('%',filtre,'%');
 END $$
 
--- ============================================================
--- STORED PROCEDURES - DAİRE SAKİNLERİ
--- ============================================================
+
 
 CREATE PROCEDURE bp_SakinlerHepsi()
 BEGIN
@@ -421,23 +401,20 @@ END $$
 
 DELIMITER ;
 
--- ============================================================
--- FONKSİYONLAR
--- (BUG FIX: 'odened' yazım hatası 'odenen' olarak düzeltildi)
--- ============================================================
+
 DELIMITER $$
 
--- Fonksiyon 1: Bir dairenin toplam kalan borcu
+
 CREATE FUNCTION bp_DaireBorcu(d_id VARCHAR(64))
 RETURNS FLOAT DETERMINISTIC READS SQL DATA
 BEGIN
   DECLARE borc FLOAT;
-  DECLARE odenen FLOAT;   -- BUG FIX: önceki kodda 'odened' yazılmıştı
+  DECLARE odenen FLOAT;  
   
   SELECT COALESCE(SUM(tutar), 0) INTO borc
     FROM binaplus_aidatlar WHERE daire_id = d_id;
     
-  SELECT COALESCE(SUM(o.tutar), 0) INTO odenen   -- BUG FIX: önceki kodda 'odened' yazılmıştı
+  SELECT COALESCE(SUM(o.tutar), 0) INTO odenen 
     FROM binaplus_odemeler o
     INNER JOIN binaplus_aidatlar a ON o.aidat_id = a.aidat_id
     WHERE a.daire_id = d_id;
@@ -445,17 +422,17 @@ BEGIN
   RETURN borc - odenen;
 END $$
 
--- Fonksiyon 2: Bir aidatin kalan ödenmemiş tutarı
+
 CREATE FUNCTION bp_AidatKalan(a_id VARCHAR(64))
 RETURNS FLOAT DETERMINISTIC READS SQL DATA
 BEGIN
   DECLARE toplam FLOAT;
-  DECLARE odenen FLOAT;   -- BUG FIX: önceki kodda 'odened' yazılmıştı
+  DECLARE odenen FLOAT;  
   
   SELECT COALESCE(tutar, 0) INTO toplam
     FROM binaplus_aidatlar WHERE aidat_id = a_id;
     
-  SELECT COALESCE(SUM(tutar), 0) INTO odenen   -- BUG FIX: önceki kodda 'odened' yazılmıştı
+  SELECT COALESCE(SUM(tutar), 0) INTO odenen  
     FROM binaplus_odemeler WHERE aidat_id = a_id;
     
   RETURN toplam - odenen;
@@ -463,12 +440,10 @@ END $$
 
 DELIMITER ;
 
--- ============================================================
--- TRİGGERLAR
--- ============================================================
+
 DELIMITER //
 
--- Trigger 1: Ödeme tutarı kalan borçtan fazla olamaz
+
 CREATE TRIGGER tg_odeme_kontrol
 BEFORE INSERT ON binaplus_odemeler FOR EACH ROW
 BEGIN
@@ -481,7 +456,7 @@ BEGIN
   END IF;
 END;//
 
--- Trigger 2: Ödeme sonrası aidat durumunu otomatik güncelle
+
 CREATE TRIGGER tg_aidat_durum_guncelle
 AFTER INSERT ON binaplus_odemeler FOR EACH ROW
 BEGIN
